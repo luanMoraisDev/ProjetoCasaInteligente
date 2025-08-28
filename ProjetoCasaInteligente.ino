@@ -14,38 +14,61 @@
 #define TFT_DC   22
 #define TFT_MOSI 23 
 #define TFT_SCLK 18  
-#define TFT_RST  -1                                            
+#define TFT_RST  -1
+
+#define botaoProximo 39
+#define botaoVoltar 36
 
 // Criando objetos
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
 
 //Criação de Variáveis
+int selecionarMenu = 0;
+int ultimoMenu = 0;
 
 void setup(){
-     pinMode(,INPUT_PULLUP);
-
+     pinMode(botaoProximo, INPUT_PULLUP);
+     pinMode(botaoVoltar, INPUT_PULLUP);
+     
      Serial.begin(9600);
+
      inicarDisplay();
 }
 
 void loop(){
-     
-     int var = Serial.parseInt();
-     
-     switch (var) {
-     case 1:
-          escreverTexto("INTERRUPTORES", 30, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
-     break;
+     if(digitalRead(botaoProximo) == LOW){
+          if(selecionarMenu == 3){
+               selecionarMenu = 3;
+          } else selecionarMenu++;
+     } else if(digitalRead(botaoVoltar) == LOW){
+          if(selecionarMenu == 1){
+               selecionarMenu = 1;
+          } else selecionarMenu--;
+     }
 
-     case 2:
-          escreverTexto("Sensor de Temp", 30, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
-     break;
+     selecionarMenu = Serial.parseInt();
      
+     if(selecionarMenu != ultimoMenu){
+          switch(selecionarMenu) {
+               case 1:
+                    escreverTexto("INTERRUPTORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
+               break;
 
-     default:
-        // statements
-     break;
-    }
+               case 2:
+                    escreverTexto("SENSORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
+               break;
+
+               case 3:
+                    escreverTexto("ATUADORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
+               break;
+               
+               default:
+               // statements
+               break;
+          }
+          ultimoMenu = selecionarMenu;
+     }
+
 }
 
 // Funções
