@@ -18,6 +18,7 @@
 
 #define botaoProximo 39
 #define botaoVoltar 36
+#define buzzer 15
 
 // Criando objetos
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
@@ -29,6 +30,7 @@ int ultimoMenu = 0;
 void setup(){
      pinMode(botaoProximo, INPUT_PULLUP);
      pinMode(botaoVoltar, INPUT_PULLUP);
+     pinMode(buzzer, OUTPUT);
      
      Serial.begin(9600);
 
@@ -52,14 +54,24 @@ void loop(){
           switch(selecionarMenu) {
                case 1:
                     escreverTexto("INTERRUPTORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
+                    digitalWrite(buzzer, HIGH);
+                    delayMicroseconds(500);
+                    digitalWrite(buzzer, LOW);
+
                break;
 
                case 2:
                     escreverTexto("SENSORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
+                    digitalWrite(buzzer, HIGH);
+                    delayMicroseconds(1000);
+                    digitalWrite(buzzer, LOW);
                break;
 
                case 3:
                     escreverTexto("ATUADORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
+                    digitalWrite(buzzer, HIGH);
+                    delayMicroseconds(1500);
+                    digitalWrite(buzzer, LOW);
                break;
                
                default:
@@ -90,7 +102,7 @@ void inicarDisplay(){
 
 // Função para escrever um texto "limpando" antes
 void escreverTexto(const char* texto, int x, int y, uint16_t corTexto, uint16_t corFundo, int tamanho) {
-    int larguraChar = 6 * tamanho;   // largura aproximada de cada caractere (fonte padrão do Adafruit_GFX)
+    int larguraChar = 15 * tamanho;   // largura aproximada de cada caractere (fonte padrão do Adafruit_GFX)
     int alturaChar  = 8 * tamanho;   // altura aproximada de cada caractere
     int larguraTexto = strlen(texto) * larguraChar;
 
