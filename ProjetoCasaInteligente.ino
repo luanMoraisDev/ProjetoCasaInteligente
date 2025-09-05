@@ -4,74 +4,94 @@
      SKETCH:  CasaInteligente  
 */
 
-//   Inclusão de Biliotecas
+//Inclusão de Biliotecas
+#include <WiFi.h>
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
 
-//   Definições de pinos
+//Definições de pinos
 #define TFT_CS   21
 #define TFT_DC   22
 #define TFT_MOSI 23 
 #define TFT_SCLK 18  
 #define TFT_RST  -1
 
-#define botaoProximo 39
-#define botaoVoltar 36
+#define botaoProximo 26 // Evitar uso pino que não tem resitor interno, previne pontos flutuantes e oscilações
+#define botaoVoltar 27  // Evitar uso pino que não tem resitor interno, previne pontos flutuantes e oscilações
+#define botaoControle 25
 #define buzzer 15
 
-// Criando objetos
+//Criando objetos
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
 
 //Criação de Variáveis
-int selecionarMenu = 0;
+int selecionarMenu = 1;
 int ultimoMenu = 0;
+int controleInterruptores = 0;
+int controleMenu = 0;
+int estadoInterruptores = 0;
+bool estadoControle = true;
+
+
+//Configuração de WIFI
+
 
 void setup(){
      pinMode(botaoProximo, INPUT_PULLUP);
      pinMode(botaoVoltar, INPUT_PULLUP);
+     pinMode(botaoControle, INPUT_PULLUP);
      pinMode(buzzer, OUTPUT);
      
      Serial.begin(9600);
 
-     inicarDisplay();
+     //inicarDisplay();
+    
 }
 
 void loop(){
      if(digitalRead(botaoProximo) == LOW){
           if(selecionarMenu == 3){
                selecionarMenu = 3;
-          } else selecionarMenu++;
+          } else {
+               delay(200);
+               selecionarMenu++;
+          }
      } else if(digitalRead(botaoVoltar) == LOW){
           if(selecionarMenu == 1){
                selecionarMenu = 1;
-          } else selecionarMenu--;
+          } else {
+               delay(200);
+               selecionarMenu--;
+          }
      }
 
-     selecionarMenu = Serial.parseInt();
+     Serial.println(estadoControle);
      
      if(selecionarMenu != ultimoMenu){
           switch(selecionarMenu) {
                case 1:
                     escreverTexto("INTERRUPTORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
-                    digitalWrite(buzzer, HIGH);
-                    delayMicroseconds(500);
-                    digitalWrite(buzzer, LOW);
+                    tone(buzzer, 50, 100);
+              
+                    
+                    if(botaoControle == LOW){
+                         estadoControle = !estadoControle;
+                    }
+
+                    Serial.print(estadoControle);
+
 
                break;
 
                case 2:
                     escreverTexto("SENSORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
-                    digitalWrite(buzzer, HIGH);
-                    delayMicroseconds(1000);
-                    digitalWrite(buzzer, LOW);
+                    tone(buzzer, 50, 100);
                break;
 
                case 3:
                     escreverTexto("ATUADORES", 10, 10, ST77XX_WHITE, ST77XX_BLACK, 2);
-                    digitalWrite(buzzer, HIGH);
-                    delayMicroseconds(1500);
-                    digitalWrite(buzzer, LOW);
+                    tone(buzzer, 50, 100);
                break;
                
                default:
@@ -83,7 +103,7 @@ void loop(){
 
 }
 
-// Funções
+//Funções
 
 void inicarDisplay(){
      tft.init(240, 320);
@@ -98,18 +118,20 @@ void inicarDisplay(){
      tft.print("Casa Inteligente");
      delay(1000);
      tft.fillScreen(0x0000);
+     
+     tft.setCursor(0, 50);
 }
 
-// Função para escrever um texto "limpando" antes
+//Função para escrever um texto "limpando" antes
 void escreverTexto(const char* texto, int x, int y, uint16_t corTexto, uint16_t corFundo, int tamanho) {
     int larguraChar = 15 * tamanho;   // largura aproximada de cada caractere (fonte padrão do Adafruit_GFX)
     int alturaChar  = 8 * tamanho;   // altura aproximada de cada caractere
     int larguraTexto = strlen(texto) * larguraChar;
 
-    // Apaga a área onde o texto vai ficar
+    //Apaga a área onde o texto vai ficar
     tft.fillRect(x, y, larguraTexto, alturaChar, corFundo);
-
-    // Configura cor, tamanho e escreve
+    
+    //Configura cor, tamanho e escreve
     tft.setTextSize(tamanho);
     tft.setTextColor(corTexto);
     tft.setCursor(x, y);
