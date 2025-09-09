@@ -17,205 +17,43 @@
 #define TFT_SCLK 18
 #define TFT_RST -1
 
-#define botaoProximo 26  // Evitar uso pino que não tem resitor interno, previne pontos flutuantes e oscilações
-#define botaoVoltar 27   // Evitar uso pino que não tem resitor interno, previne pontos flutuantes e oscilações
-#define botaoControle 25
-#define botaoConfirmar 14
+#define botaoProximo 12  // Evitar uso pino que não tem resitor interno, previne pontos flutuantes e oscilações
+#define botaoConfirmar 13
+#define botaoVoltar 14  
 #define buzzer 15
 
-#define luzQuarto1 4
-#define luzQuarto2 2
-/*
-#define luzQuarto3 
-#define luzSala
-#define luzCozinha
-#define luzBanheiro
-#define luzGaragem
-*/
-//Criando objetos
+#define luzQuarto1 27
+#define luzQuarto2 26
+#define luzQuarto3 25
+#define luzSala 33
+#define luzGaragem 32
+#define luzCozinha 35
+#define luzBanheiro 34
+
+//Declaração de objetos
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
 
-//Variáveis de controle
-int selecionarMenu = 1;
-int ultimoMenu = 0;
-bool estadoBotaoControle = false;
+//Váriaveis de controle
 int controleInterruptores = 1;
-bool sair = false;
-
-//Váriaveis controle de comodos
 bool estadoLuzQuarto1 = false;
 bool estadoLuzQuarto2 = false;
 bool estadoLuzQuarto3 = false;
+bool estadoLuzSala = false;
 bool estadoLuzGaragem = false;
 bool estadoLuzCozinha = false;
 bool estadoLuzBanheiro = false;
-bool estadoLuzSala = false;
-
-//Variáveis sensores
-
-
-//Configuração de WIFI
-
-void setup() {
-  pinMode(botaoVoltar, INPUT_PULLUP);
-  pinMode(botaoProximo, INPUT_PULLUP);
-  pinMode(botaoControle, INPUT_PULLUP);
-  pinMode(botaoConfirmar, INPUT_PULLUP);
-  pinMode(buzzer, OUTPUT);
-
-
-//  pinMode(luzBanheiro, OUTPUT);
-  pinMode(luzQuarto1, OUTPUT);
-  pinMode(luzQuarto2, OUTPUT);
-  
-  /*
-  pinMode(luzQuarto3, OUTPUT);
-  pinMode(luzCozinha, OUTPUT);
-  pinMode(luzGaragem, OUTPUT);
-  pinMode(luzSala, OUTPUT);
-  */
-
-  Serial.begin(9600);
-  inicarDisplay();
-}
-
-void loop() {
-  Serial.println(selecionarMenu);
-  controleBotoesNavegar();
-
-  while(selecionarMenu == 1){
-    
-    layout();
-    controleBotoesNavegar();
-    tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(45,5);
-    tft.print("INTERRUPTORES");
-
-    if(digitalRead(botaoConfirmar) == LOW){
-        sair = !sair;
-    }
-
-    while(sair){
-      controleBotoesInterruptores();
-      switch(controleInterruptores) {
-        case 1:
-            exibirControlesInterruptores(1);
-
-            if(digitalRead(botaoControle) == LOW){
-                estadoLuzQuarto1 = !estadoLuzQuarto1;
-                delay(100);
-            }
-
-            if(estadoLuzQuarto1){
-                digitalWrite(luzQuarto1, HIGH);
-                tft.setCursor(150, 30);
-                tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
-                tft.print("ON ");
-            } else {
-                digitalWrite(luzQuarto1, LOW);
-                tft.setCursor(150, 30);
-                tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
-                tft.print("OFF");
-            }
-        break;
-
-        case 2:
-            exibirControlesInterruptores(2);
-
-            if(digitalRead(botaoControle) == LOW){
-                estadoLuzQuarto2 = !estadoLuzQuarto2;
-                delay(100);
-            }
-
-            if(estadoLuzQuarto2){
-                digitalWrite(luzQuarto2, HIGH);
-                tft.setCursor(150, 50);
-                tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
-                tft.print("ON ");
-            } else {
-                digitalWrite(luzQuarto2, LOW);
-                tft.setCursor(150, 50);
-                tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
-                tft.print("OFF");
-            }
-        break;
-      }
-      if(digitalRead(botaoConfirmar) == LOW){
-        sair = !sair;
-      }
-    }
-  }
-  while(selecionarMenu == 2){
-    layout();
-    controleBotoesNavegar();
-    Serial.println("While menu 2");
-    tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(45,5);
-    tft.print("  SENSORES     ");
-    
-  }
-
-  while(selecionarMenu == 3){
-    layout();
-    controleBotoesNavegar();
-    Serial.println("While menu 3");
-    tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(45,5);
-    tft.print(" ATUADORES    ");
-  }
-}
 
 //Funções
-
-void inicarDisplay() {
-  tft.init(240, 320);
-  tft.invertDisplay(false);
-  tft.fillScreen(0x2B40);
-  tft.setTextSize(4);
-  tft.setTextColor(ST77XX_BLACK);
-  tft.setCursor(70, 40);
-  tft.print("SEMA");
-  tft.setTextSize(2);
-  tft.setCursor(30, 100);
-  tft.print("Casa Inteligente");
-  delay(1000);
-  tft.fillScreen(0x0000);
-
-  tft.setCursor(0, 50);
-}
-
 void layout(){
   tft.drawRect(0, 0, 240, 320, 0x2B40);
-  tft.drawLine(0, 25, 240, 25, 0x2B40);
-}
-
-
-void controleBotoesNavegar() {
-  // Controle de botão avançar e retornar
-  if (digitalRead(botaoProximo) == LOW) {
-    if (selecionarMenu >= 3) {
-      selecionarMenu = 3;
-    } else {
-      delay(150);
-      selecionarMenu++;
-    }
-  } else if (digitalRead(botaoVoltar) == LOW) {
-    if (selecionarMenu <= 1) {
-      selecionarMenu = 1;
-    } else {
-      delay(150);
-      selecionarMenu--;
-    }
-  }
-
-     if (digitalRead(botaoControle) == LOW) {
-            estadoBotaoControle = !estadoBotaoControle;
-            delay(150);
-     }
+  tft.drawLine(0, 22, 240, 22, 0x2B40);
+  tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+  tft.setCursor(45,5);
+  tft.print("INTERRUPTORES");
 }
 
 void controleBotoesInterruptores(){
-    if (digitalRead(botaoProximo) == LOW) {
+  if (digitalRead(botaoProximo) == LOW) {
     if (controleInterruptores >= 7) {
       controleInterruptores = 7;
     } else {
@@ -232,7 +70,7 @@ void controleBotoesInterruptores(){
   }
 }
 
-void exibirControlesInterruptores(int op){
+void exibirInterruptores(int op){
   if(op == 1){
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
     tft.setCursor(10,30);
@@ -399,6 +237,191 @@ void exibirControlesInterruptores(int op){
     
     tft.setCursor(10,150);
     tft.print("Garagem  <");
+  }
+
+}
+
+void setup(){
+  pinMode(botaoVoltar, INPUT_PULLUP);
+  pinMode(botaoProximo, INPUT_PULLUP);
+  pinMode(botaoConfirmar, INPUT_PULLUP);
+  pinMode(buzzer, OUTPUT);
+
+  pinMode(luzBanheiro , OUTPUT);
+  pinMode(luzQuarto1 , OUTPUT);
+  pinMode(luzQuarto2 , OUTPUT);
+  pinMode(luzQuarto3 , OUTPUT);
+  pinMode(luzGaragem , OUTPUT);
+  pinMode(luzCozinha , OUTPUT);
+  pinMode(luzSala, OUTPUT);
+
+  Serial.begin(9600);
+
+  tft.init(240, 320);
+  tft.invertDisplay(false);
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_BLACK);
+}
+
+void loop(){
+  layout();
+
+  Serial.print(digitalRead(botaoProximo));
+  Serial.print(" | ");
+  Serial.println(controleInterruptores);
+
+  controleBotoesInterruptores();
+
+  switch(controleInterruptores){
+    case 1:
+      exibirInterruptores(1);
+
+      if(digitalRead(botaoConfirmar) == LOW){
+        estadoLuzQuarto1 = !estadoLuzQuarto1;
+        delay(100);
+      }
+
+      if(estadoLuzQuarto1){
+        digitalWrite(luzQuarto1, HIGH);
+        tft.setCursor(150, 30);
+        tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
+        tft.print("ON ");
+      } else {
+        digitalWrite(luzQuarto1, LOW);
+        tft.setCursor(150, 30);
+        tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+        tft.print("OFF");
+      }
+
+     break;
+
+    case 2:
+      exibirInterruptores(2);
+
+      if(digitalRead(botaoConfirmar) == LOW){
+        estadoLuzQuarto2 = !estadoLuzQuarto2;
+        delay(100);
+      }
+
+      if(estadoLuzQuarto2){
+        digitalWrite(luzQuarto2, HIGH);
+        tft.setCursor(150, 50);
+        tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
+        tft.print("ON ");
+      } else {
+        digitalWrite(luzQuarto2, LOW);
+        tft.setCursor(150, 50);
+        tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+        tft.print("OFF");
+      }
+    break;
+
+    case 3:
+      exibirInterruptores(3);
+
+      if(digitalRead(botaoConfirmar) == LOW){
+        estadoLuzQuarto3 = !estadoLuzQuarto3;
+        delay(100);
+      }
+
+      if(estadoLuzQuarto3){
+        digitalWrite(luzQuarto3, HIGH);
+        tft.setCursor(150, 70);
+        tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
+        tft.print("ON ");
+      } else {
+        digitalWrite(luzQuarto3, LOW);
+        tft.setCursor(150, 70);
+        tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+        tft.print("OFF");
+      }
+    break;
+    
+    case 4:
+      exibirInterruptores(4);
+
+      if(digitalRead(botaoConfirmar) == LOW){
+        estadoLuzBanheiro = !estadoLuzBanheiro;
+        delay(100);
+      }
+
+      if(estadoLuzBanheiro){
+        digitalWrite(luzBanheiro, HIGH);
+        tft.setCursor(150, 90);
+        tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
+        tft.print("ON ");
+      } else {
+        digitalWrite(luzBanheiro, LOW);
+        tft.setCursor(150, 90);
+        tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+        tft.print("OFF");
+      }
+    break;
+
+    case 5:
+      exibirInterruptores(5);
+
+      if(digitalRead(botaoConfirmar) == LOW){
+        estadoLuzCozinha = !estadoLuzCozinha;
+        delay(100);
+      }
+
+      if(estadoLuzCozinha){
+        digitalWrite(luzCozinha, HIGH);
+        tft.setCursor(150, 110);
+        tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
+        tft.print("ON ");
+      } else {
+        digitalWrite(luzCozinha, LOW);
+        tft.setCursor(150, 110);
+        tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+        tft.print("OFF");
+      }
+    break;
+
+    case 6:
+      exibirInterruptores(6);
+
+      if(digitalRead(botaoConfirmar) == LOW){
+        estadoLuzSala = !estadoLuzSala;
+        delay(100);
+      }
+
+      if(estadoLuzSala){
+        digitalWrite(luzSala, HIGH);
+        tft.setCursor(150, 130);
+        tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
+        tft.print("ON ");
+      } else {
+        digitalWrite(luzSala, LOW);
+        tft.setCursor(150, 130);
+        tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+        tft.print("OFF");
+      }      
+    break;
+
+    case 7:
+      exibirInterruptores(7);
+
+      if(digitalRead(botaoConfirmar) == LOW){
+        estadoLuzGaragem = !estadoLuzGaragem;
+        delay(100);
+      }
+
+      if(estadoLuzGaragem){
+        digitalWrite(luzGaragem, HIGH);
+        tft.setCursor(150, 150);
+        tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
+        tft.print("ON ");
+      } else {
+        digitalWrite(luzGaragem, LOW);
+        tft.setCursor(150, 150);
+        tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+        tft.print("OFF");
+      }
+    break;
+
   }
 
 }
