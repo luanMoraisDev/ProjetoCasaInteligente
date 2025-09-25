@@ -1,41 +1,46 @@
 /*
-          AUTOR:   Luan Vinicius dos Santos Morais
-          DATA:    27/08/2025
-          SKETCH:  CasaInteligente  
+Sketch: Automação residencial com ESP32
+Autor: Luan Vinicius
+Ultima modificação: 25.09.2025
 */
 
-//Inclusão de Biliotecas
-#include <WiFi.h>
-#include <Adafruit_GFX.h>     // Core graphics library
-#include <Adafruit_ST7789.h>  // Hardware-specific library for ST7789
+// Inclusão de Bibliotecas
+#include <Adafruit_GFX.h>       
+#include <Adafruit_ST7789.h>
+#include "RTClib.h" 
+#include <Wire.h>
 #include <SPI.h>
 
-//Definições de pinos
-#define TFT_CS 21
-#define TFT_DC 22
+// Definição de Pinos
+#define TFT_CS 19
+#define TFT_DC 5
 #define TFT_MOSI 23
 #define TFT_SCLK 18
 #define TFT_RST -1
 
-#define botaoProximo 12  // Evitar uso pino que não tem resitor interno, previne pontos flutuantes e oscilações
-#define botaoConfirmar 13
-#define botaoVoltar 14  
-#define buzzer 15
+#define botaoProximo 12
+#define botaoVoltar 14
+#define botaoConfirmar 27
 
-#define luzQuarto1 27
-#define luzQuarto2 26
-#define luzQuarto3 25
-#define luzSala 33
-#define luzGaragem 4
-#define luzCozinha 2
-#define luzBanheiro 15
+#define luzQuarto1 15
+#define luzQuarto2 2
+#define luzQuarto3 4
+#define luzSala 16
+#define luzGaragem 17 
+#define luzCozinha 26
+#define luzBanheiro 25
+#define buzzer 33
 
-#define NTC 39
-
-//Declaração de objetos
+// Criação de objetos
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
 
-//Váriaveis de controle
+RTC_DS1307 rtc;
+char daysOfTheWeek[7][12] = {"Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sat"};
+
+// Criação de variáveis
+int segundoAtual = 0 , minutoAtual = 0 , horaAtual = 0 , diaAtual = 0 , mesAtual = 0 , anoAtual = 0; 
+String semanaAtual = "";
+
 int controleInterruptores = 1;
 bool estadoLuzQuarto1 = false;
 bool estadoLuzQuarto2 = false;
@@ -45,50 +50,123 @@ bool estadoLuzGaragem = false;
 bool estadoLuzCozinha = false;
 bool estadoLuzBanheiro = false;
 
-//Variáveis sensores
-float leitura = analogRead(NTC);
-float temperatura = (1 / ( (log(1/(1024 /leitura - 1))) /(3950) + 1 / (298.15))) - 273.15;
-
-//Funções
-void layout(){
-  tft.drawRect(0, 0, 240, 320, 0x2B40);
-  tft.drawLine(0, 22, 240, 22, 0x2B40);
-  tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-  tft.setCursor(45,5);
-  tft.print("INTERRUPTORES");
-
-  tft.drawLine(0, 177, 240, 177, 0x2B40);
-  tft.setCursor(50,185);
-  tft.print("TEMPERATURA");
-  tft.setCursor(30, 215);
-  tft.setTextSize(4);
-  tft.setTextColor(ST77XX_BLUE, ST77XX_BLACK);
-  tft.print(temperatura);
+// Criação de funções
+void iniciarDisplay(){
+  tft.init(240, 320);
+  tft.setRotation(0);
+  tft.invertDisplay(false);
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextColor(ST77XX_WHITE);
   tft.setTextSize(2);
 }
 
-void ajustes(){ //Apenas para já começar com o texto de OFF na tela
-  tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
-  tft.setCursor(150, 30);
-  tft.print("OFF");
+void layout(){
+  tft.drawRect(0, 0, 240, 320, ST77XX_BLUE);
+  tft.drawFastHLine(0, 20, 240, ST77XX_BLUE);
+  tft.drawFastVLine(45, 0, 20, ST77XX_BLUE);
+  tft.drawFastVLine(170, 0, 20, ST77XX_BLUE);
+  tft.drawFastHLine(0, 80, 240, ST77XX_BLUE);
+  tft.drawFastVLine(120, 20, 60, ST77XX_BLUE);
+  tft.drawFastHLine(0, 100, 240, ST77XX_BLUE);
+}
 
-  tft.setCursor(150, 50);
-  tft.print("OFF");
+void RTC(){
+  DateTime now = rtc.now();
+  
+  int segundo = now.second();
+  int minuto = now.minute();
+  int hora = now.hour();
+  int dia = now.day();
+  int mes = now.month();
+  int ano = now.year();
+  String semana = daysOfTheWeek[now.dayOfTheWeek()];
 
-  tft.setCursor(150, 70);
-  tft.print("OFF");
+  tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
 
-  tft.setCursor(150, 90);
-  tft.print("OFF");
+  if (!semana.equals(semanaAtual)) {
+    semanaAtual = semana;  
+    tft.setCursor(5,3);
+    tft.setTextSize(2);
+    tft.fillRect(5, 3, 25, 15, ST77XX_BLACK);
+    tft.print(semana);
+  }
 
-  tft.setCursor(150, 110);
-  tft.print("OFF");
+  if (dia != diaAtual) {
+    diaAtual = dia;  
+    tft.setCursor(55,3);
+    tft.setTextSize(2);
+    tft.fillRect(55, 3, 25, 15, ST77XX_BLACK);
+    tft.print(dia);
+    tft.print(".");
+  }
 
-  tft.setCursor(150, 130);
-  tft.print("OFF");
+  if (mes != mesAtual) {
+    mesAtual = mes;  
+    tft.setCursor(90,3);
+    tft.setTextSize(2);
+    tft.fillRect(90, 3, 25, 15, ST77XX_BLACK);
+    tft.print(mes);
+    tft.print(".");
+  }
 
-  tft.setCursor(150, 150);
-  tft.print("OFF");
+  if (ano != anoAtual) {
+    anoAtual = ano;  
+    tft.setCursor(115,3);
+    tft.setTextSize(2);
+    tft.fillRect(115, 3, 25, 15, ST77XX_BLACK);
+    tft.print(ano);
+  }
+
+  if (hora != horaAtual) {
+    horaAtual = hora;
+    tft.setCursor(177,3);
+    tft.setTextSize(2);
+    tft.fillRect(177, 3, 25, 15, ST77XX_BLACK);
+    tft.print(hora);
+    tft.setCursor(199,3);
+    tft.print(":");
+  }
+
+  if (minuto != minutoAtual) {
+    minutoAtual = minuto;
+    tft.setCursor(210,3);
+    tft.setTextSize(2);
+    tft.fillRect(210, 3, 25, 15, ST77XX_BLACK);
+    tft.print(minuto);
+  }
+
+}
+
+void temperaturaNTC(){
+  float leitura = analogRead(36);
+  float temp = (1 / ( (log(1/(4095 /leitura - 1))) /(3950) + 1 / (298.15))) - 273.15;  
+  float tempAtual;
+
+  tft.setTextSize(2);
+  tft.setCursor(5, 25);
+  tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+  tft.print("TEMP. NTC");
+  
+  if(temp != tempAtual){
+    tempAtual = temp;
+    Serial.println(temp);
+    tft.setCursor(10, 50);
+    tft.setTextSize(3);
+    tft.fillRect(10,49, 90, 25, ST77XX_BLACK);
+    
+    if(temp > 50){
+      tft.setTextColor(ST77XX_RED);
+      tft.print(temp);
+    } else if(temp < 20){
+      tft.setTextColor(ST77XX_BLUE);
+      tft.print(temp);
+    } else{
+      tft.setTextColor(ST77XX_WHITE);
+      tft.print(temp);
+    }
+
+
+  }
 
 }
 
@@ -111,177 +189,192 @@ void controleBotoesInterruptores(){
 }
 
 void exibirInterruptores(int op){
+  tft.setTextSize(2);
+  tft.setCursor(45, 83);
+  tft.print("Interruptores");
+
   if(op == 1){
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(10,30);
+    tft.setCursor(10,110);
     tft.print("Quarto 1 <");
 
-    tft.setCursor(10,50);
+    tft.setCursor(10,130);
     tft.print("Quarto 2  ");
     
-    tft.setCursor(10,70);
+    tft.setCursor(10,150);
     tft.print("Quarto 3  ");
     
-    tft.setCursor(10,90);
+    tft.setCursor(10,170);
     tft.print("Banheiro  ");
 
-    tft.setCursor(10,110);
+    tft.setCursor(10,190);
     tft.print("Cozinha   ");
     
-    tft.setCursor(10,130);
+    tft.setCursor(10,210);
     tft.print("Sala      ");
     
-    tft.setCursor(10,150);
+    tft.setCursor(10,230);
     tft.print("Garagem   ");
   }
 
   if(op == 2){
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(10,30);
+    tft.setCursor(10,110);
     tft.print("Quarto 1  ");
 
-    tft.setCursor(10,50);
+    tft.setCursor(10,130);
     tft.print("Quarto 2 <");
     
-    tft.setCursor(10,70);
+    tft.setCursor(10,150);
     tft.print("Quarto 3  ");
     
-    tft.setCursor(10,90);
+    tft.setCursor(10,170);
     tft.print("Banheiro  ");
 
-    tft.setCursor(10,110);
+    tft.setCursor(10,190);
     tft.print("Cozinha   ");
     
-    tft.setCursor(10,130);
+    tft.setCursor(10,210);
     tft.print("Sala      ");
     
-    tft.setCursor(10,150);
-    tft.print("Garagem   ");  
+    tft.setCursor(10,230);
+    tft.print("Garagem   ");
   }
 
   if(op == 3){
-    tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(10,30);
+   tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+    tft.setCursor(10,110);
     tft.print("Quarto 1  ");
 
-    tft.setCursor(10,50);
+    tft.setCursor(10,130);
     tft.print("Quarto 2  ");
     
-    tft.setCursor(10,70);
+    tft.setCursor(10,150);
     tft.print("Quarto 3 <");
     
-    tft.setCursor(10,90);
+    tft.setCursor(10,170);
     tft.print("Banheiro  ");
 
-    tft.setCursor(10,110);
+    tft.setCursor(10,190);
     tft.print("Cozinha   ");
     
-    tft.setCursor(10,130);
+    tft.setCursor(10,210);
     tft.print("Sala      ");
     
-    tft.setCursor(10,150);
+    tft.setCursor(10,230);
     tft.print("Garagem   ");
   }
 
   if(op == 4){
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(10,30);
+    tft.setCursor(10,110);
     tft.print("Quarto 1  ");
 
-    tft.setCursor(10,50);
+    tft.setCursor(10,130);
     tft.print("Quarto 2  ");
     
-    tft.setCursor(10,70);
+    tft.setCursor(10,150);
     tft.print("Quarto 3  ");
     
-    tft.setCursor(10,90);
+    tft.setCursor(10,170);
     tft.print("Banheiro <");
 
-    tft.setCursor(10,110);
+    tft.setCursor(10,190);
     tft.print("Cozinha   ");
     
-    tft.setCursor(10,130);
+    tft.setCursor(10,210);
     tft.print("Sala      ");
     
-    tft.setCursor(10,150);
+    tft.setCursor(10,230);
     tft.print("Garagem   ");
   }
 
   if(op == 5){
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(10,30);
+    tft.setCursor(10,110);
     tft.print("Quarto 1  ");
 
-    tft.setCursor(10,50);
+    tft.setCursor(10,130);
     tft.print("Quarto 2  ");
     
-    tft.setCursor(10,70);
+    tft.setCursor(10,150);
     tft.print("Quarto 3  ");
     
-    tft.setCursor(10,90);
+    tft.setCursor(10,170);
     tft.print("Banheiro  ");
 
-    tft.setCursor(10,110);
+    tft.setCursor(10,190);
     tft.print("Cozinha  <");
     
-    tft.setCursor(10,130);
+    tft.setCursor(10,210);
     tft.print("Sala      ");
     
-    tft.setCursor(10,150);
+    tft.setCursor(10,230);
     tft.print("Garagem   ");
   }
 
   if(op == 6){
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(10,30);
+    tft.setCursor(10,110);
     tft.print("Quarto 1  ");
 
-    tft.setCursor(10,50);
+    tft.setCursor(10,130);
     tft.print("Quarto 2  ");
     
-    tft.setCursor(10,70);
+    tft.setCursor(10,150);
     tft.print("Quarto 3  ");
     
-    tft.setCursor(10,90);
+    tft.setCursor(10,170);
     tft.print("Banheiro  ");
 
-    tft.setCursor(10,110);
+    tft.setCursor(10,190);
     tft.print("Cozinha   ");
     
-    tft.setCursor(10,130);
+    tft.setCursor(10,210);
     tft.print("Sala     <");
     
-    tft.setCursor(10,150);
+    tft.setCursor(10,230);
     tft.print("Garagem   ");
   }
 
   if(op == 7){
     tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tft.setCursor(10,30);
+    tft.setCursor(10,110);
     tft.print("Quarto 1  ");
 
-    tft.setCursor(10,50);
+    tft.setCursor(10,130);
     tft.print("Quarto 2  ");
     
-    tft.setCursor(10,70);
+    tft.setCursor(10,150);
     tft.print("Quarto 3  ");
     
-    tft.setCursor(10,90);
+    tft.setCursor(10,170);
     tft.print("Banheiro  ");
 
-    tft.setCursor(10,110);
+    tft.setCursor(10,190);
     tft.print("Cozinha   ");
     
-    tft.setCursor(10,130);
+    tft.setCursor(10,210);
     tft.print("Sala      ");
     
-    tft.setCursor(10,150);
+    tft.setCursor(10,230);
     tft.print("Garagem  <");
   }
 
 }
 
-void setup(){
+void ajustesDisplay(){ //Correção de posição inical dos botões ON/OFF
+  tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
+  tft.setCursor(150, 110);  tft.print("OFF");
+  tft.setCursor(150, 130);  tft.print("OFF");
+  tft.setCursor(150, 150);   tft.print("OFF");
+  tft.setCursor(150, 170);  tft.print("OFF");
+  tft.setCursor(150, 190);  tft.print("OFF");
+  tft.setCursor(150, 210);  tft.print("OFF");
+  tft.setCursor(150, 230);  tft.print("OFF");
+}
+
+void setup() {
   pinMode(botaoVoltar, INPUT_PULLUP);
   pinMode(botaoProximo, INPUT_PULLUP);
   pinMode(botaoConfirmar, INPUT_PULLUP);
@@ -294,28 +387,32 @@ void setup(){
   pinMode(luzGaragem , OUTPUT);
   pinMode(luzCozinha , OUTPUT);
   pinMode(luzSala, OUTPUT);
+  
+  iniciarDisplay();
 
-  pinMode(NTC, INPUT);
+  Serial.begin(57600);
+  if (! rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
 
-  Serial.begin(9600);
-
-  tft.init(240, 320);
-  tft.invertDisplay(false);
-  tft.fillScreen(ST77XX_BLACK);
-  tft.setTextSize(2);
-  tft.setTextColor(ST77XX_BLACK);
+  if (! rtc.isrunning()) {
+    Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line sets the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+  }
+    rtc.adjust(DateTime(2025, 9, 23, 12, 31, 0));
 
   layout();
-  ajustes();
+  ajustesDisplay();
+
 }
 
-
 void loop(){
-  leitura = analogRead(NTC);
-  //temperatura = (1 / ( (log(1/(1024 /leitura - 1))) /(3950) + 1 / (298.15))) - 273.15;
-  temperatura = (1 / ( (log( (4095.0 / leitura) - 1.0 ) / 3950.0 + (1.0 / 298.15) ) )) - 273.15;
-
-  layout();
+  RTC();
+  temperaturaNTC();
 
   controleBotoesInterruptores();
 
@@ -330,12 +427,12 @@ void loop(){
 
       if(estadoLuzQuarto1){
         digitalWrite(luzQuarto1, HIGH);
-        tft.setCursor(150, 30);
+        tft.setCursor(150, 110);
         tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
         tft.print("ON ");
       } else {
         digitalWrite(luzQuarto1, LOW);
-        tft.setCursor(150, 30);
+        tft.setCursor(150, 110);
         tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
         tft.print("OFF");
       }
@@ -352,12 +449,12 @@ void loop(){
 
       if(estadoLuzQuarto2){
         digitalWrite(luzQuarto2, HIGH);
-        tft.setCursor(150, 50);
+        tft.setCursor(150, 130);
         tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
         tft.print("ON ");
       } else {
         digitalWrite(luzQuarto2, LOW);
-        tft.setCursor(150, 50);
+        tft.setCursor(150, 130);
         tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
         tft.print("OFF");
       }
@@ -373,12 +470,12 @@ void loop(){
 
       if(estadoLuzQuarto3){
         digitalWrite(luzQuarto3, HIGH);
-        tft.setCursor(150, 70);
+        tft.setCursor(150, 150);
         tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
         tft.print("ON ");
       } else {
         digitalWrite(luzQuarto3, LOW);
-        tft.setCursor(150, 70);
+        tft.setCursor(150, 150);
         tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
         tft.print("OFF");
       }
@@ -394,12 +491,12 @@ void loop(){
 
       if(estadoLuzBanheiro){
         digitalWrite(luzBanheiro, HIGH);
-        tft.setCursor(150, 90);
+        tft.setCursor(150, 170);
         tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
         tft.print("ON ");
       } else {
         digitalWrite(luzBanheiro, LOW);
-        tft.setCursor(150, 90);
+        tft.setCursor(150, 170);
         tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
         tft.print("OFF");
       }
@@ -415,12 +512,12 @@ void loop(){
 
       if(estadoLuzCozinha){
         digitalWrite(luzCozinha, HIGH);
-        tft.setCursor(150, 110);
+        tft.setCursor(150, 190);
         tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
         tft.print("ON ");
       } else {
         digitalWrite(luzCozinha, LOW);
-        tft.setCursor(150, 110);
+        tft.setCursor(150, 190);
         tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
         tft.print("OFF");
       }
@@ -436,12 +533,12 @@ void loop(){
 
       if(estadoLuzSala){
         digitalWrite(luzSala, HIGH);
-        tft.setCursor(150, 130);
+        tft.setCursor(150, 210);
         tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
         tft.print("ON ");
       } else {
         digitalWrite(luzSala, LOW);
-        tft.setCursor(150, 130);
+        tft.setCursor(150, 210);
         tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
         tft.print("OFF");
       }      
@@ -457,12 +554,12 @@ void loop(){
 
       if(estadoLuzGaragem){
         digitalWrite(luzGaragem, HIGH);
-        tft.setCursor(150, 150);
+        tft.setCursor(150, 230);
         tft.setTextColor(ST77XX_GREEN, ST77XX_WHITE);
         tft.print("ON ");
       } else {
         digitalWrite(luzGaragem, LOW);
-        tft.setCursor(150, 150);
+        tft.setCursor(150, 230);
         tft.setTextColor(ST77XX_RED, ST77XX_WHITE);
         tft.print("OFF");
       }
